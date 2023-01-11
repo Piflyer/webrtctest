@@ -8,7 +8,7 @@ var socketIO = require('socket.io');
 var fileServer = new(nodeStatic.Server)();
 var app = http.createServer(function(req, res) {
   fileServer.serve(req, res);
-}).listen(8080);
+}).listen(8085);
 
 var io = socketIO.listen(app);
 io.sockets.on('connection', function(socket) {
@@ -25,6 +25,9 @@ io.sockets.on('connection', function(socket) {
     // for a real app, would be room-only (not broadcast)
     socket.broadcast.emit('message', message);
   });
+  socket.on("button", function(button) {
+    console.log(button);
+  });
 
   socket.on('create or join', function(room) {
     log('Received request to create or join room ' + room);
@@ -38,14 +41,17 @@ io.sockets.on('connection', function(socket) {
       log('Client ID ' + socket.id + ' created room ' + room);
       socket.emit('created', room, socket.id);
 
-    } else if (numClients === 1) {
-      log('Client ID ' + socket.id + ' joined room ' + room);
-      io.sockets.in(room).emit('join', room);
-      socket.join(room);
-      socket.emit('joined', room, socket.id);
-      io.sockets.in(room).emit('ready');
-    } else { // max two clients
+    }
+    // else if (numClients === 1) {
+    //   log('Client ID ' + socket.id + ' joined room ' + room);
+    //   io.sockets.in(room).emit('join', room);
+    //   socket.join(room);
+    //   socket.emit('joined', room, socket.id);
+    //   io.sockets.in(room).emit('ready');
+    // }
+    else { // max two clients
       socket.emit('full', room);
+      socket.join(room);
     }
   });
 

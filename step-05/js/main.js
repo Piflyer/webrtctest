@@ -7,6 +7,7 @@ var localStream;
 var pc;
 var remoteStream;
 var turnReady;
+var full = false;
 
 var pcConfig = {
   'iceServers': [{
@@ -40,6 +41,14 @@ socket.on('created', function(room) {
 
 socket.on('full', function(room) {
   console.log('Room ' + room + ' is full');
+  full = true;
+  console.log('>>>>>> creating peer connection');
+  createPeerConnection();
+  isStarted = true;
+  console.log('isInitiator', isInitiator);
+  if (isInitiator) {
+    doCall();
+  }
 });
 
 socket.on('join', function (room){
@@ -93,14 +102,18 @@ socket.on('message', function(message) {
 var localVideo = document.querySelector('#localVideo');
 var remoteVideo = document.querySelector('#remoteVideo');
 
-navigator.mediaDevices.getUserMedia({
-  audio: false,
-  video: true
-})
-.then(gotStream)
-.catch(function(e) {
-  alert('getUserMedia() error: ' + e.name);
-});
+if(!full) {
+  var button = document.createElement("button");
+  button.innerHTML = "Start";
+  document.body.appendChild(button);
+  button.onclick = () => {
+    navigator.mediaDevices.getDisplayMedia()
+        .then(gotStream)
+        .catch(function (e) {
+          alert('getDisplayMedia() error: ' + e.name);
+        });
+  }
+}
 
 function gotStream(stream) {
   console.log('Adding local stream.');
@@ -126,16 +139,19 @@ if (location.hostname !== 'localhost') {
 
 function maybeStart() {
   console.log('>>>>>>> maybeStart() ', isStarted, localStream, isChannelReady);
-  if (!isStarted && typeof localStream !== 'undefined' && isChannelReady) {
+// && typeof localStream !== 'undefined' && isChannelReady
+//   if (!isStarted) {
     console.log('>>>>>> creating peer connection');
     createPeerConnection();
-    pc.addStream(localStream);
+    if(!full) {
+      pc.addStream(localStream);
+    }
     isStarted = true;
     console.log('isInitiator', isInitiator);
     if (isInitiator) {
       doCall();
     }
-  }
+  // }
 }
 
 window.onbeforeunload = function() {
@@ -155,6 +171,14 @@ function createPeerConnection() {
     console.log('Failed to create PeerConnection, exception: ' + e.message);
     alert('Cannot create RTCPeerConnection object.');
     return;
+  }
+  if(full) {
+    var upBtn = document.createElement("button");
+    upBtn.innerHTML = "up";
+    document.body.appendChild(upBtn);
+    upBtn.onclick = () => {
+          socket.emit("button", "up");
+    }
   }
 }
 
